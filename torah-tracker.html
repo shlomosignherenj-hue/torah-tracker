@@ -1,0 +1,1261 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<title>Torah Tracker</title>
+<meta name="theme-color" content="#1a2744" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Torah Tracker" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@300;400;500;700;900&family=Heebo:wght@300;400;500;700&display=swap" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --navy: #1a2744;
+  --navy-light: #253359;
+  --gold: #c9943a;
+  --gold-light: #f5e6c8;
+  --cream: #faf8f3;
+  --green: #1d7a5f;
+  --green-light: #e0f4ed;
+  --blue: #2563a8;
+  --blue-light: #dbedf8;
+  --amber: #d97706;
+  --amber-light: #fef3c7;
+  --red: #dc2626;
+  --border: #e5e0d8;
+  --text: #1a1a2e;
+  --muted: #6b7280;
+  --bg: #faf8f3;
+  --card: #ffffff;
+  --font-he: 'Frank Ruhl Libre', serif;
+  --font-ui: 'Heebo', sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+body {
+  font-family: var(--font-ui);
+  background: #e8e4dc;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  direction: rtl;
+}
+
+.phone {
+  width: 100%;
+  max-width: 390px;
+  min-height: 100vh;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+}
+
+@media (min-width: 480px) {
+  .phone { min-height: 844px; max-height: 844px; border-radius: 44px; border: 6px solid #111; }
+  body { padding: 20px; }
+}
+
+/* ── STATUS BAR ── */
+.status-bar {
+  background: var(--navy);
+  color: rgba(255,255,255,0.9);
+  padding: 12px 20px 8px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+/* ── SCREENS ── */
+.screen { display: none; flex-direction: column; flex: 1; overflow: hidden; }
+.screen.active { display: flex; }
+
+.screen-scroll { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.screen-scroll::-webkit-scrollbar { display: none; }
+
+/* ── TOP BAR ── */
+.topbar {
+  background: var(--navy);
+  padding: 4px 18px 16px;
+  flex-shrink: 0;
+}
+.topbar-title {
+  font-family: var(--font-he);
+  font-size: 26px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.01em;
+}
+.topbar-sub {
+  font-size: 12px;
+  color: rgba(255,255,255,0.55);
+  margin-top: 1px;
+}
+.topbar-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+.topbar-badge {
+  background: rgba(255,255,255,0.12);
+  color: rgba(255,255,255,0.8);
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 99px;
+  font-family: var(--font-he);
+}
+
+/* ── BOTTOM NAV ── */
+.bottom-nav {
+  display: flex;
+  background: var(--card);
+  border-top: 1px solid var(--border);
+  padding: 6px 0 max(6px, env(safe-area-inset-bottom));
+  flex-shrink: 0;
+}
+.nav-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 0;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 10px;
+  font-family: var(--font-ui);
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.nav-btn svg { width: 22px; height: 22px; stroke-width: 1.6; }
+.nav-btn.active { color: var(--navy); }
+.nav-btn.active svg { stroke-width: 2.2; }
+
+/* ── CARDS ── */
+.pad { padding: 14px; }
+.card {
+  background: var(--card);
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  padding: 14px;
+  margin-bottom: 10px;
+}
+.card-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 12px;
+  font-family: var(--font-ui);
+}
+
+/* ── DASHBOARD ── */
+.hero-card {
+  background: var(--navy);
+  border-radius: 20px;
+  padding: 18px;
+  margin-bottom: 10px;
+  color: white;
+}
+.hero-title { font-family: var(--font-he); font-size: 14px; color: rgba(255,255,255,0.6); margin-bottom: 12px; }
+.hero-body { display: flex; align-items: center; gap: 18px; }
+.circle-svg { flex-shrink: 0; }
+.hero-bars { flex: 1; }
+.hero-bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+.hero-bar-row:last-child { margin-bottom: 0; }
+.hb-label { font-family: var(--font-he); font-size: 13px; color: rgba(255,255,255,0.75); min-width: 44px; }
+.hb-track { flex: 1; height: 6px; background: rgba(255,255,255,0.12); border-radius: 99px; overflow: hidden; }
+.hb-fill { height: 6px; border-radius: 99px; transition: width 1s ease; }
+.hb-val { font-size: 12px; color: rgba(255,255,255,0.55); min-width: 28px; text-align: left; }
+
+.stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+.stat-box {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px;
+}
+.stat-num { font-size: 24px; font-weight: 300; color: var(--navy); font-family: var(--font-he); }
+.stat-lbl { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+.seder-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+.seder-row:last-child { border-bottom: none; }
+.seder-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.seder-name { font-family: var(--font-he); font-size: 15px; flex: 1; }
+.seder-mini { width: 55px; height: 4px; background: #eee; border-radius: 99px; overflow: hidden; }
+.seder-mini-fill { height: 4px; border-radius: 99px; }
+.seder-pct { font-size: 12px; color: var(--muted); min-width: 30px; text-align: left; }
+
+.recent-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--border);
+}
+.recent-row:last-child { border-bottom: none; }
+.rr-masechta { font-family: var(--font-he); font-size: 14px; font-weight: 500; }
+.rr-when { font-size: 11px; color: var(--muted); margin-top: 1px; }
+.tags { display: flex; gap: 4px; }
+.tag {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 99px;
+  font-family: var(--font-he);
+}
+.tag-g { background: var(--blue-light); color: var(--blue); }
+.tag-r { background: var(--green-light); color: var(--green); }
+.tag-t { background: var(--amber-light); color: var(--amber); }
+.tag-c { background: #ede9fe; color: #6d28d9; }
+
+.add-btn {
+  background: var(--navy);
+  color: white;
+  border: none;
+  border-radius: 14px;
+  padding: 14px;
+  width: 100%;
+  font-size: 15px;
+  font-family: var(--font-he);
+  font-weight: 500;
+  cursor: pointer;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  letter-spacing: 0.01em;
+  transition: opacity 0.15s;
+}
+.add-btn:active { opacity: 0.8; }
+
+/* ── LEARN SCREEN ── */
+.form-group { margin-bottom: 12px; }
+.form-label { font-size: 12px; color: var(--muted); margin-bottom: 5px; display: block; font-family: var(--font-ui); }
+.form-select, .form-input {
+  width: 100%;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 15px;
+  font-family: var(--font-he);
+  background: var(--card);
+  color: var(--text);
+  appearance: none;
+  -webkit-appearance: none;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.form-select:focus, .form-input:focus { border-color: var(--navy); }
+.amud-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+.chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip {
+  padding: 8px 14px;
+  border-radius: 99px;
+  border: 1.5px solid var(--border);
+  font-size: 14px;
+  font-family: var(--font-he);
+  cursor: pointer;
+  background: var(--card);
+  color: var(--text);
+  transition: all 0.12s;
+  user-select: none;
+}
+.chip.on-g { border-color: var(--blue); background: var(--blue-light); color: var(--blue); }
+.chip.on-r { border-color: var(--green); background: var(--green-light); color: var(--green); }
+.chip.on-t { border-color: var(--amber); background: var(--amber-light); color: var(--amber); }
+
+.type-chips { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.type-chip {
+  padding: 10px;
+  border-radius: 12px;
+  border: 1.5px solid var(--border);
+  font-size: 13px;
+  font-family: var(--font-he);
+  cursor: pointer;
+  text-align: center;
+  background: var(--card);
+  color: var(--muted);
+  transition: all 0.12s;
+}
+.type-chip.on { border-color: var(--navy); background: #eef2ff; color: var(--navy); font-weight: 600; }
+
+.save-btn {
+  background: var(--navy);
+  color: white;
+  border: none;
+  border-radius: 14px;
+  padding: 14px;
+  width: 100%;
+  font-size: 16px;
+  font-family: var(--font-he);
+  font-weight: 500;
+  cursor: pointer;
+  margin-top: 4px;
+  transition: opacity 0.15s;
+}
+.save-btn:active { opacity: 0.8; }
+.repeat-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px;
+  width: 100%;
+  font-size: 13px;
+  font-family: var(--font-ui);
+  color: var(--muted);
+  cursor: pointer;
+  margin-top: 8px;
+}
+
+/* ── SHAS MAP ── */
+.hm-wrap { overflow-x: hidden; }
+.hm-seder { margin-bottom: 14px; }
+.hm-seder-title {
+  font-family: var(--font-he);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.hm-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+.hm-cell {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: transform 0.1s;
+  position: relative;
+}
+.hm-cell:active { transform: scale(1.3); }
+.hm-none { background: #e5e0d8; }
+.hm-g { background: #93c5fd; }
+.hm-gr { background: #6ee7b7; }
+.hm-grt { background: #fbbf24; }
+.hm-4 { background: #3b82f6; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+.leg { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); font-family: var(--font-ui); }
+.leg-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+.masechta-list-item {
+  display: flex;
+  align-items: center;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--border);
+  gap: 10px;
+  cursor: pointer;
+}
+.masechta-list-item:last-child { border-bottom: none; }
+.ml-name { font-family: var(--font-he); font-size: 15px; flex: 1; }
+.ml-bar { width: 50px; height: 4px; background: #eee; border-radius: 99px; overflow: hidden; }
+.ml-fill { height: 4px; border-radius: 99px; }
+.ml-pct { font-size: 12px; color: var(--muted); min-width: 32px; text-align: left; }
+
+/* ── HISTORY ── */
+.history-day { margin-bottom: 14px; }
+.history-date {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+  font-family: var(--font-ui);
+}
+.history-entry {
+  background: var(--card);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  padding: 10px 12px;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.he-masechta { font-family: var(--font-he); font-size: 15px; font-weight: 500; }
+.he-detail { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.empty-state { text-align: center; padding: 40px 20px; color: var(--muted); }
+.empty-icon { font-size: 48px; margin-bottom: 12px; }
+.empty-title { font-family: var(--font-he); font-size: 18px; color: var(--text); margin-bottom: 6px; }
+.empty-text { font-size: 13px; line-height: 1.6; }
+
+/* ── AUTH SCREEN ── */
+.auth-screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 24px;
+  background: var(--navy);
+}
+.auth-logo {
+  font-family: var(--font-he);
+  font-size: 52px;
+  font-weight: 900;
+  color: white;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.auth-tagline {
+  font-family: var(--font-he);
+  font-size: 16px;
+  color: rgba(255,255,255,0.55);
+  margin-bottom: 40px;
+  letter-spacing: 0.05em;
+}
+.auth-card {
+  background: white;
+  border-radius: 20px;
+  padding: 24px;
+  width: 100%;
+}
+.auth-title {
+  font-family: var(--font-he);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 18px;
+  text-align: center;
+}
+.auth-input {
+  width: 100%;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 15px;
+  font-family: var(--font-ui);
+  outline: none;
+  margin-bottom: 10px;
+  direction: ltr;
+  text-align: left;
+}
+.auth-input:focus { border-color: var(--navy); }
+.auth-btn {
+  background: var(--navy);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 13px;
+  width: 100%;
+  font-size: 16px;
+  font-family: var(--font-he);
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 4px;
+  transition: opacity 0.15s;
+}
+.auth-btn:active { opacity: 0.8; }
+.auth-toggle {
+  text-align: center;
+  margin-top: 14px;
+  font-size: 13px;
+  color: var(--muted);
+  cursor: pointer;
+}
+.auth-toggle span { color: var(--navy); font-weight: 600; }
+.auth-err { color: var(--red); font-size: 13px; margin-top: 6px; text-align: center; min-height: 18px; }
+
+/* ── TOAST ── */
+.toast {
+  position: fixed;
+  bottom: 90px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1a1a2e;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 99px;
+  font-size: 14px;
+  font-family: var(--font-he);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+  white-space: nowrap;
+  z-index: 999;
+}
+.toast.show { opacity: 1; }
+
+/* ── LOADING ── */
+.loader {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--navy);
+}
+.loader-inner { text-align: center; }
+.loader-text {
+  font-family: var(--font-he);
+  font-size: 42px;
+  font-weight: 900;
+  color: white;
+  animation: pulse 1.4s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+/* ── GOALS ── */
+.goal-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.goal-item:last-child { border-bottom: none; }
+.goal-icon { font-size: 22px; flex-shrink: 0; margin-top: 1px; }
+.goal-title { font-family: var(--font-he); font-size: 15px; font-weight: 500; }
+.goal-desc { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.goal-form { display: none; }
+.goal-form.open { display: block; }
+</style>
+</head>
+<body>
+<div class="phone" id="app">
+  <div class="loader" id="loader">
+    <div class="loader-inner">
+      <div class="loader-text">Torah Tracker</div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── SUPABASE ──
+const SUPA_URL = 'https://wcqbttzrqlsmkarjsbab.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndjcWJ0dHpycWxzbWthcmpzYmFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3MjA2MzksImV4cCI6MjA5NTI5NjYzOX0.Z5bQMMw3PhIUuh4c9Tpb18N5UxQEeorAq9E2jvPq17Q';
+const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+// ── SHAS DATA ──
+const SHAS = {
+  זרעים: [
+    {name:'ברכות', dafim:64},
+    {name:'פאה', dafim:8},
+    {name:'דמאי', dafim:7},
+    {name:'כלאים', dafim:9},
+    {name:'שביעית', dafim:10},
+    {name:'תרומות', dafim:11},
+    {name:'מעשרות', dafim:5},
+    {name:'מעשר שני', dafim:5},
+    {name:'חלה', dafim:4},
+    {name:'ערלה', dafim:3},
+    {name:'בכורים', dafim:3},
+  ],
+  מועד: [
+    {name:'שבת', dafim:157},
+    {name:'עירובין', dafim:105},
+    {name:'פסחים', dafim:121},
+    {name:'שקלים', dafim:22},
+    {name:'יומא', dafim:88},
+    {name:'סוכה', dafim:56},
+    {name:'ביצה', dafim:40},
+    {name:'ראש השנה', dafim:35},
+    {name:'תענית', dafim:31},
+    {name:'מגילה', dafim:32},
+    {name:'מועד קטן', dafim:29},
+    {name:'חגיגה', dafim:27},
+  ],
+  נשים: [
+    {name:'יבמות', dafim:122},
+    {name:'כתובות', dafim:112},
+    {name:'נדרים', dafim:91},
+    {name:'נזיר', dafim:66},
+    {name:'סוטה', dafim:49},
+    {name:'גיטין', dafim:90},
+    {name:'קידושין', dafim:82},
+  ],
+  נזיקין: [
+    {name:'בבא קמא', dafim:119},
+    {name:'בבא מציעא', dafim:119},
+    {name:'בבא בתרא', dafim:176},
+    {name:'סנהדרין', dafim:113},
+    {name:'מכות', dafim:24},
+    {name:'שבועות', dafim:49},
+    {name:'עבודה זרה', dafim:76},
+    {name:'הוריות', dafim:14},
+  ],
+  קדשים: [
+    {name:'זבחים', dafim:120},
+    {name:'מנחות', dafim:110},
+    {name:'חולין', dafim:142},
+    {name:'בכורות', dafim:61},
+    {name:'ערכין', dafim:34},
+    {name:'תמורה', dafim:34},
+    {name:'כריתות', dafim:28},
+    {name:'מעילה', dafim:22},
+    {name:'תמיד', dafim:10},
+    {name:'מידות', dafim:4},
+    {name:'קינים', dafim:4},
+  ],
+  טהרות: [
+    {name:'נידה', dafim:73},
+  ],
+};
+
+const SEDER_COLORS = {
+  זרעים:'#3b82f6', מועד:'#7c3aed', נשים:'#db2777', נזיקין:'#059669', קדשים:'#d97706', טהרות:'#0891b2'
+};
+
+function getAmudim(masechta) {
+  for (const [seder, list] of Object.entries(SHAS)) {
+    const m = list.find(x => x.name === masechta);
+    if (m) {
+      const amudim = [];
+      for (let d = 2; d <= m.dafim + 1; d++) {
+        amudim.push(d + 'א');
+        amudim.push(d + 'ב');
+      }
+      return amudim;
+    }
+  }
+  return [];
+}
+
+function getAllMasechtos() {
+  return Object.values(SHAS).flat();
+}
+
+// ── STATE ──
+let user = null;
+let sessions = [];
+let goals = [];
+let chips = {g:false, r:false, t:false};
+let learnType = 'first';
+let currentScreen = 'dash';
+
+// ── INIT ──
+window.addEventListener('DOMContentLoaded', async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  user = session?.user || null;
+  if (user) {
+    await loadData();
+    renderApp();
+  } else {
+    renderAuth();
+  }
+});
+
+// ── LOAD DATA ──
+async function loadData() {
+  const { data: s } = await sb.from('sessions').select('*').eq('user_id', user.id).order('date', {ascending:false});
+  sessions = s || [];
+  const { data: g } = await sb.from('goals').select('*').eq('user_id', user.id).order('created_at', {ascending:false});
+  goals = g || [];
+}
+
+// ── RENDER AUTH ──
+function renderAuth(mode='login') {
+  const app = document.getElementById('app');
+  document.getElementById('loader').style.display = 'none';
+  app.innerHTML = `
+    <div class="status-bar"><span>9:41</span><span>◀◀ ▌▌</span></div>
+    <div class="auth-screen">
+      <div class="auth-logo">Torah Tracker</div>
+      <div class="auth-tagline">עקוב · למד · קנה</div>
+      <div class="auth-card">
+        <div class="auth-title">${mode==='login' ? 'כניסה לחשבון' : 'יצירת חשבון'}</div>
+        <input class="auth-input" id="auth-email" type="email" placeholder="Email" dir="ltr" />
+        <input class="auth-input" id="auth-pass" type="password" placeholder="Password" dir="ltr" />
+        <div class="auth-err" id="auth-err"></div>
+        <button class="auth-btn" onclick="doAuth('${mode}')">${mode==='login' ? 'כניסה' : 'הרשמה'}</button>
+        <div class="auth-toggle" onclick="renderAuth('${mode==='login'?'signup':'login'}')">
+          ${mode==='login' ? 'אין לך חשבון? <span>הרשמה</span>' : 'יש לך חשבון? <span>כניסה</span>'}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function doAuth(mode) {
+  const email = document.getElementById('auth-email').value.trim();
+  const pass = document.getElementById('auth-pass').value;
+  const errEl = document.getElementById('auth-err');
+  errEl.textContent = '';
+  if (!email || !pass) { errEl.textContent = 'Please fill in all fields'; return; }
+  let res;
+  if (mode === 'login') {
+    res = await sb.auth.signInWithPassword({email, password:pass});
+  } else {
+    res = await sb.auth.signUp({email, password:pass});
+  }
+  if (res.error) { errEl.textContent = res.error.message; return; }
+  user = res.data.user || res.data.session?.user;
+  if (mode === 'signup') {
+    showToast('Check your email to confirm your account!');
+    return;
+  }
+  await loadData();
+  renderApp();
+}
+
+// ── RENDER APP ──
+function renderApp() {
+  const app = document.getElementById('app');
+  document.getElementById('loader').style.display = 'none';
+  app.innerHTML = `
+    <div class="status-bar"><span>9:41</span><span>◀◀ ▌▌</span></div>
+
+    ${renderDashScreen()}
+    ${renderLearnScreen()}
+    ${renderMapScreen()}
+    ${renderHistoryScreen()}
+    ${renderGoalsScreen()}
+
+    <nav class="bottom-nav">
+      <button class="nav-btn active" id="nav-dash" onclick="showScreen('dash')">
+        ${iconHome()} <span>ראשי</span>
+      </button>
+      <button class="nav-btn" id="nav-learn" onclick="showScreen('learn')">
+        ${iconPlus()} <span>הוספה</span>
+      </button>
+      <button class="nav-btn" id="nav-map" onclick="showScreen('map')">
+        ${iconMap()} <span>מפת ש"ס</span>
+      </button>
+      <button class="nav-btn" id="nav-history" onclick="showScreen('history')">
+        ${iconHistory()} <span>היסטוריה</span>
+      </button>
+      <button class="nav-btn" id="nav-goals" onclick="showScreen('goals')">
+        ${iconGoal()} <span>יעדים</span>
+      </button>
+    </nav>
+  `;
+  attachLearnHandlers();
+  buildHeatmap();
+  showScreen('dash');
+}
+
+// ── STATS COMPUTATION ──
+function getStats() {
+  const totalAmudim = Object.values(SHAS).flat().reduce((s,m) => s + m.dafim * 2, 0);
+  const learnedAmudim = new Set(sessions.map(s => s.masechta + s.amud_from));
+  const gemara = sessions.filter(s => s.gemara).length;
+  const rashi = sessions.filter(s => s.rashi).length;
+  const tosfos = sessions.filter(s => s.tosfos).length;
+  const pct = Math.round(learnedAmudim.size / totalAmudim * 100);
+  const gPct = Math.round(gemara / totalAmudim * 100);
+  const rPct = Math.round(rashi / totalAmudim * 100);
+  const tPct = Math.round(tosfos / totalAmudim * 100);
+  const thisWeek = sessions.filter(s => {
+    const d = new Date(s.date);
+    const now = new Date();
+    return (now - d) < 7 * 86400000;
+  }).length;
+  return { totalAmudim, learnedAmudim: learnedAmudim.size, pct, gPct, rPct, tPct, gemara, thisWeek };
+}
+
+function getSederPct(sederName) {
+  const masechtos = SHAS[sederName] || [];
+  const total = masechtos.reduce((s,m) => s + m.dafim * 2, 0);
+  const learned = sessions.filter(s => masechtos.some(m => m.name === s.masechta) && s.gemara).length;
+  return total ? Math.round(Math.min(learned, total) / total * 100) : 0;
+}
+
+function getMasPct(masName) {
+  const m = getAllMasechtos().find(x => x.name === masName);
+  if (!m) return 0;
+  const total = m.dafim * 2;
+  const learned = sessions.filter(s => s.masechta === masName && s.gemara).length;
+  return Math.round(Math.min(learned, total) / total * 100);
+}
+
+// ── DASHBOARD ──
+function renderDashScreen() {
+  const st = getStats();
+  const circ = 2 * Math.PI * 34;
+  const offset = circ - (circ * st.pct / 100);
+  const recent = sessions.slice(0, 4);
+
+  return `<div class="screen" id="screen-dash">
+    <div class="topbar">
+      <div class="topbar-row">
+        <div>
+          <div class="topbar-title">Torah Tracker</div>
+          <div class="topbar-sub">Dashboard</div>
+        </div>
+        <button onclick="doSignOut()" style="background:rgba(255,255,255,0.1);border:none;color:rgba(255,255,255,0.7);padding:6px 12px;border-radius:99px;font-size:12px;cursor:pointer;">יציאה</button>
+      </div>
+    </div>
+    <div class="screen-scroll">
+      <div class="pad">
+        <button class="add-btn" onclick="showScreen('learn')">+ הוסף לימוד</button>
+
+        <div class="hero-card">
+          <div class="hero-title">התקדמות כוללת בש"ס</div>
+          <div class="hero-body">
+            <svg class="circle-svg" width="88" height="88" viewBox="0 0 88 88">
+              <circle cx="44" cy="44" r="34" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="9"/>
+              <circle cx="44" cy="44" r="34" fill="none" stroke="white" stroke-width="9"
+                stroke-dasharray="${circ.toFixed(1)}" stroke-dashoffset="${offset.toFixed(1)}"
+                stroke-linecap="round" transform="rotate(-90 44 44)"/>
+              <text x="44" y="49" text-anchor="middle" font-size="18" font-weight="700" fill="white" font-family="Frank Ruhl Libre">${st.pct}%</text>
+            </svg>
+            <div class="hero-bars">
+              <div class="hero-bar-row">
+                <span class="hb-label">גמרא</span>
+                <div class="hb-track"><div class="hb-fill" style="width:${st.gPct}%; background:#93c5fd;"></div></div>
+                <span class="hb-val">${st.gPct}%</span>
+              </div>
+              <div class="hero-bar-row">
+                <span class="hb-label">רש"י</span>
+                <div class="hb-track"><div class="hb-fill" style="width:${st.rPct}%; background:#6ee7b7;"></div></div>
+                <span class="hb-val">${st.rPct}%</span>
+              </div>
+              <div class="hero-bar-row">
+                <span class="hb-label">תוס'</span>
+                <div class="hb-track"><div class="hb-fill" style="width:${st.tPct}%; background:#fbbf24;"></div></div>
+                <span class="hb-val">${st.tPct}%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="stat-grid">
+          <div class="stat-box"><div class="stat-num">${st.learnedAmudim.toLocaleString()}</div><div class="stat-lbl">עמודים שנלמדו</div></div>
+          <div class="stat-box"><div class="stat-num">${st.thisWeek}</div><div class="stat-lbl">עמודים השבוע</div></div>
+        </div>
+
+        <div class="card">
+          <div class="card-label">לפי סדר</div>
+          ${Object.keys(SHAS).map(s => {
+            const pct = getSederPct(s);
+            return `<div class="seder-row" onclick="showScreen('map')">
+              <div class="seder-dot" style="background:${SEDER_COLORS[s]};"></div>
+              <span class="seder-name">${s}</span>
+              <div class="seder-mini"><div class="seder-mini-fill" style="width:${pct}%;background:${SEDER_COLORS[s]};"></div></div>
+              <span class="seder-pct">${pct}%</span>
+            </div>`;
+          }).join('')}
+        </div>
+
+        ${recent.length > 0 ? `<div class="card">
+          <div class="card-label">לימוד אחרון</div>
+          ${recent.map(s => `<div class="recent-row">
+            <div>
+              <div class="rr-masechta">${s.masechta} ${s.amud_from}${s.amud_to !== s.amud_from ? '–' + s.amud_to : ''}</div>
+              <div class="rr-when">${formatDate(s.date)}</div>
+            </div>
+            <div class="tags">
+              ${s.gemara ? '<span class="tag tag-g">גמ\'</span>' : ''}
+              ${s.rashi ? '<span class="tag tag-r">רש"י</span>' : ''}
+              ${s.tosfos ? '<span class="tag tag-t">תוס\'</span>' : ''}
+              ${s.is_chazarah ? '<span class="tag tag-c">חזרה</span>' : ''}
+            </div>
+          </div>`).join('')}
+        </div>` : `<div class="card"><div class="empty-state"><div class="empty-icon">📖</div><div class="empty-title">ברוך הבא לTorah Tracker</div><div class="empty-text">לחץ על "הוסף לימוד" כדי להתחיל לעקוב אחר הלימוד שלך</div></div></div>`}
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── LEARN SCREEN ──
+function renderLearnScreen() {
+  const today = new Date().toISOString().split('T')[0];
+  const masechtos = getAllMasechtos();
+  const defaultMas = 'ברכות';
+  const amudim = getAmudim(defaultMas);
+
+  return `<div class="screen" id="screen-learn">
+    <div class="topbar">
+      <div class="topbar-title">הוספת לימוד</div>
+      <div class="topbar-sub">Add Learning</div>
+    </div>
+    <div class="screen-scroll">
+      <div class="pad">
+        <div class="card">
+          <div class="form-group">
+            <label class="form-label">תאריך / Date</label>
+            <input class="form-input" type="date" id="inp-date" value="${today}" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">מסכת / Masechta</label>
+            <select class="form-select" id="inp-mas" onchange="updateAmudim()">
+              ${masechtos.map(m => `<option value="${m.name}">${m.name}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">טווח עמודים / Amud Range</label>
+            <div class="amud-row">
+              <select class="form-select" id="inp-from">
+                ${amudim.map(a => `<option>${a}</option>`).join('')}
+              </select>
+              <select class="form-select" id="inp-to">
+                ${amudim.map((a,i) => `<option ${i===1?'selected':''}>${a}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-label">מה למדת? / What did you learn?</div>
+          <div class="chips">
+            <div class="chip" id="chip-g" onclick="toggleChip('g')">📖 גמרא</div>
+            <div class="chip" id="chip-r" onclick="toggleChip('r')">🔤 רש"י</div>
+            <div class="chip" id="chip-t" onclick="toggleChip('t')">📜 תוספות</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-label">סוג לימוד / Type</div>
+          <div class="type-chips">
+            <div class="type-chip on" id="tc-first" onclick="selType('first')">⭐ לימוד ראשון</div>
+            <div class="type-chip" id="tc-chaz" onclick="selType('chaz')">🔄 חזרה</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">הערות / Notes (optional)</label>
+            <textarea class="form-input" id="inp-notes" rows="2" placeholder="חידוש מעניין, שאלה..." style="resize:none; line-height:1.6;"></textarea>
+          </div>
+        </div>
+
+        <button class="save-btn" onclick="saveLearning()">💾 שמור</button>
+        <button class="repeat-btn" onclick="repeatLast()">↺ Repeat last entry format</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function attachLearnHandlers() {
+  chips = {g:false,r:false,t:false};
+  learnType = 'first';
+}
+
+function updateAmudim() {
+  const mas = document.getElementById('inp-mas').value;
+  const amudim = getAmudim(mas);
+  const fromEl = document.getElementById('inp-from');
+  const toEl = document.getElementById('inp-to');
+  fromEl.innerHTML = amudim.map(a => `<option>${a}</option>`).join('');
+  toEl.innerHTML = amudim.map((a,i) => `<option ${i===1?'selected':''}>${a}</option>`).join('');
+}
+
+function toggleChip(k) {
+  chips[k] = !chips[k];
+  const el = document.getElementById('chip-'+k);
+  el.className = 'chip' + (chips[k] ? ' on-'+k : '');
+}
+
+function selType(t) {
+  learnType = t;
+  document.getElementById('tc-first').className = 'type-chip' + (t==='first' ? ' on' : '');
+  document.getElementById('tc-chaz').className = 'type-chip' + (t==='chaz' ? ' on' : '');
+}
+
+async function saveLearning() {
+  if (!chips.g && !chips.r && !chips.t) { showToast('בחר מה למדת'); return; }
+  const masechta = document.getElementById('inp-mas').value;
+  const amud_from = document.getElementById('inp-from').value;
+  const amud_to = document.getElementById('inp-to').value;
+  const date = document.getElementById('inp-date').value;
+  const notes = document.getElementById('inp-notes').value;
+
+  const row = { masechta, amud_from, amud_to, date, notes,
+    gemara: chips.g, rashi: chips.r, tosfos: chips.t,
+    is_chazarah: learnType === 'chaz', user_id: user.id };
+
+  const { error } = await sb.from('sessions').insert(row);
+  if (error) { showToast('Error saving. Try again.'); console.error(error); return; }
+  sessions.unshift({...row, id: Date.now()});
+  showToast('✓ נשמר בהצלחה!');
+  showScreen('dash');
+  // Re-render dash to show new data
+  setTimeout(() => {
+    const dashEl = document.getElementById('screen-dash');
+    if (dashEl) dashEl.outerHTML = renderDashScreen();
+  }, 300);
+}
+
+function repeatLast() {
+  if (!sessions.length) { showToast('אין לימוד קודם'); return; }
+  const last = sessions[0];
+  const masEl = document.getElementById('inp-mas');
+  if (masEl) {
+    masEl.value = last.masechta;
+    updateAmudim();
+    chips.g = last.gemara; chips.r = last.rashi; chips.t = last.tosfos;
+    ['g','r','t'].forEach(k => {
+      const el = document.getElementById('chip-'+k);
+      if (el) el.className = 'chip' + (chips[k] ? ' on-'+k : '');
+    });
+    learnType = last.is_chazarah ? 'chaz' : 'first';
+    selType(learnType);
+    showToast('פורמט אחרון נטען');
+  }
+}
+
+// ── SHAS MAP ──
+function renderMapScreen() {
+  return `<div class="screen" id="screen-map">
+    <div class="topbar">
+      <div class="topbar-title">מפת הש"ס</div>
+      <div class="topbar-sub">Shas Map</div>
+    </div>
+    <div class="screen-scroll">
+      <div class="pad">
+        <div class="card">
+          <div class="card-label">כל המסכתות</div>
+          <div id="heatmap-container"></div>
+          <div class="legend">
+            <div class="leg"><div class="leg-dot" style="background:#e5e0d8;"></div>לא נלמד</div>
+            <div class="leg"><div class="leg-dot" style="background:#93c5fd;"></div>גמרא</div>
+            <div class="leg"><div class="leg-dot" style="background:#6ee7b7;"></div>+ רש"י</div>
+            <div class="leg"><div class="leg-dot" style="background:#fbbf24;"></div>+ תוספות</div>
+            <div class="leg"><div class="leg-dot" style="background:#3b82f6;"></div>חזרה ×4</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-label">פירוט לפי מסכת</div>
+          ${Object.entries(SHAS).map(([seder, mas]) => `
+            <div style="margin-bottom:12px;">
+              <div style="font-family:var(--font-he); font-size:12px; font-weight:600; color:${SEDER_COLORS[seder]}; margin-bottom:6px; letter-spacing:0.04em;">${seder}</div>
+              ${mas.map(m => {
+                const pct = getMasPct(m.name);
+                return `<div class="masechta-list-item">
+                  <span class="ml-name">${m.name}</span>
+                  <div class="ml-bar"><div class="ml-fill" style="width:${pct}%; background:${SEDER_COLORS[seder]};"></div></div>
+                  <span class="ml-pct">${pct}%</span>
+                </div>`;
+              }).join('')}
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function buildHeatmap() {
+  const container = document.getElementById('heatmap-container');
+  if (!container) return;
+
+  // Count reviews per amud
+  const reviews = {};
+  sessions.forEach(s => {
+    const key = s.masechta + '|' + s.amud_from;
+    if (!reviews[key]) reviews[key] = {g:0,r:0,t:0,count:0};
+    if (s.gemara) reviews[key].g++;
+    if (s.rashi) reviews[key].r++;
+    if (s.tosfos) reviews[key].t++;
+    reviews[key].count++;
+  });
+
+  let html = '';
+  for (const [seder, masechtos] of Object.entries(SHAS)) {
+    html += `<div class="hm-seder">
+      <div class="hm-seder-title"><span style="color:${SEDER_COLORS[seder]};">●</span> ${seder}</div>
+      <div class="hm-grid">`;
+    masechtos.forEach(m => {
+      const amudim = getAmudim(m.name);
+      amudim.forEach(amud => {
+        const key = m.name + '|' + amud;
+        const rv = reviews[key];
+        let cls = 'hm-none';
+        if (rv) {
+          if (rv.count >= 4) cls = 'hm-4';
+          else if (rv.t) cls = 'hm-grt';
+          else if (rv.r) cls = 'hm-gr';
+          else if (rv.g) cls = 'hm-g';
+        }
+        html += `<div class="hm-cell ${cls}" title="${m.name} ${amud}"></div>`;
+      });
+    });
+    html += `</div></div>`;
+  }
+  container.innerHTML = html;
+}
+
+// ── HISTORY ──
+function renderHistoryScreen() {
+  if (!sessions.length) {
+    return `<div class="screen" id="screen-history">
+      <div class="topbar"><div class="topbar-title">היסטוריה</div><div class="topbar-sub">History</div></div>
+      <div class="screen-scroll"><div class="pad">
+        <div class="empty-state"><div class="empty-icon">📅</div><div class="empty-title">אין היסטוריה עדיין</div><div class="empty-text">לאחר שתוסיף לימודים, הם יופיעו כאן</div></div>
+      </div></div>
+    </div>`;
+  }
+
+  // Group by date
+  const byDate = {};
+  sessions.forEach(s => {
+    if (!byDate[s.date]) byDate[s.date] = [];
+    byDate[s.date].push(s);
+  });
+
+  return `<div class="screen" id="screen-history">
+    <div class="topbar"><div class="topbar-title">היסטוריה</div><div class="topbar-sub">History</div></div>
+    <div class="screen-scroll"><div class="pad">
+      ${Object.entries(byDate).map(([date, entries]) => `
+        <div class="history-day">
+          <div class="history-date">${formatDateFull(date)}</div>
+          ${entries.map(s => `
+            <div class="history-entry">
+              <div>
+                <div class="he-masechta">${s.masechta} ${s.amud_from}${s.amud_to !== s.amud_from ? '–' + s.amud_to : ''}</div>
+                <div class="he-detail">${[s.gemara?'גמרא':'', s.rashi?'רש"י':'', s.tosfos?'תוספות':''].filter(Boolean).join(' + ')}${s.is_chazarah ? ' · חזרה' : ''}</div>
+              </div>
+              <div class="tags">
+                ${s.gemara ? '<span class="tag tag-g">ג\'</span>' : ''}
+                ${s.rashi ? '<span class="tag tag-r">ר\'</span>' : ''}
+                ${s.tosfos ? '<span class="tag tag-t">ת\'</span>' : ''}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `).join('')}
+    </div></div>
+  </div>`;
+}
+
+// ── GOALS ──
+function renderGoalsScreen() {
+  return `<div class="screen" id="screen-goals">
+    <div class="topbar">
+      <div class="topbar-row">
+        <div><div class="topbar-title">יעדים</div><div class="topbar-sub">Goals</div></div>
+        <button onclick="toggleGoalForm()" style="background:rgba(255,255,255,0.15);border:none;color:white;padding:6px 14px;border-radius:99px;font-size:13px;font-family:var(--font-he);cursor:pointer;">+ הוסף</button>
+      </div>
+    </div>
+    <div class="screen-scroll"><div class="pad">
+      <div class="card goal-form" id="goal-form">
+        <div class="card-label">Add Goal</div>
+        <div class="form-group">
+          <label class="form-label">שם היעד / Goal title</label>
+          <input class="form-input" id="goal-title" placeholder="לסיים ברכות עד ראש חודש..." />
+        </div>
+        <div class="form-group">
+          <label class="form-label">תאריך יעד / Target date</label>
+          <input class="form-input" id="goal-date" type="date" />
+        </div>
+        <button class="save-btn" onclick="saveGoal()">שמור יעד</button>
+      </div>
+
+      <div class="card" id="goals-list">
+        <div class="card-label">יעדים פעילים</div>
+        ${goals.filter(g => !g.completed).length === 0
+          ? `<div class="empty-state" style="padding:20px 0;"><div class="empty-icon">🎯</div><div class="empty-title">אין יעדים עדיין</div></div>`
+          : goals.filter(g => !g.completed).map(g => `
+            <div class="goal-item">
+              <div class="goal-icon">🎯</div>
+              <div>
+                <div class="goal-title">${g.title}</div>
+                ${g.target_date ? `<div class="goal-desc">עד ${formatDateFull(g.target_date)}</div>` : ''}
+              </div>
+              <button onclick="completeGoal('${g.id}')" style="background:var(--green-light);border:none;color:var(--green);padding:5px 10px;border-radius:99px;font-size:12px;cursor:pointer;margin-right:auto;">✓ סיימתי</button>
+            </div>
+          `).join('')}
+      </div>
+    </div></div>
+  </div>`;
+}
+
+function toggleGoalForm() {
+  const f = document.getElementById('goal-form');
+  if (f) f.classList.toggle('open');
+}
+
+async function saveGoal() {
+  const title = document.getElementById('goal-title')?.value?.trim();
+  const target_date = document.getElementById('goal-date')?.value || null;
+  if (!title) { showToast('הכנס שם ליעד'); return; }
+  const { error } = await sb.from('goals').insert({title, target_date, user_id: user.id});
+  if (error) { showToast('Error saving goal'); return; }
+  showToast('✓ יעד נשמר!');
+  await loadData();
+  document.getElementById('screen-goals').outerHTML = renderGoalsScreen();
+}
+
+async function completeGoal(id) {
+  await sb.from('goals').update({completed:true}).eq('id', id);
+  await loadData();
+  document.getElementById('screen-goals').outerHTML = renderGoalsScreen();
+  showToast('🎉 כל הכבוד! יעד הושלם');
+}
+
+// ── SCREEN NAV ──
+function showScreen(name) {
+  const screens = ['dash','learn','map','history','goals'];
+  screens.forEach(s => {
+    const el = document.getElementById('screen-'+s);
+    const nav = document.getElementById('nav-'+s);
+    if (el) el.classList.toggle('active', s===name);
+    if (nav) nav.classList.toggle('active', s===name);
+  });
+  currentScreen = name;
+  if (name === 'map') buildHeatmap();
+}
+
+// ── SIGN OUT ──
+async function doSignOut() {
+  await sb.auth.signOut();
+  user = null; sessions = []; goals = [];
+  renderAuth();
+}
+
+// ── HELPERS ──
+function formatDate(d) {
+  if (!d) return '';
+  const date = new Date(d + 'T00:00:00');
+  const now = new Date();
+  const diff = Math.floor((now - date) / 86400000);
+  if (diff === 0) return 'היום';
+  if (diff === 1) return 'אתמול';
+  if (diff < 7) return `לפני ${diff} ימים`;
+  return date.toLocaleDateString('he-IL');
+}
+
+function formatDateFull(d) {
+  if (!d) return '';
+  const date = new Date(d + 'T00:00:00');
+  return date.toLocaleDateString('he-IL', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+// ── ICONS ──
+function iconHome() { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`; }
+function iconPlus() { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>`; }
+function iconMap() { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>`; }
+function iconHistory() { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="12 8 12 12 14 14"/><path d="M3.05 11a9 9 0 1 1 .5 4m-.5 5v-5h5"/></svg>`; }
+function iconGoal() { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>`; }
+</script>
+</body>
+</html>
